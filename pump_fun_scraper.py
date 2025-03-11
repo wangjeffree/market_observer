@@ -122,6 +122,9 @@ class PumpFunScraper:
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
         
+        # 防止日志传播到根日志记录器
+        self.logger.propagate = False
+        
         self.logger.info("日志系统初始化完成")
         
     def _get_data_dir(self):
@@ -502,8 +505,15 @@ class PumpFunScraper:
                 self.send_notification("new_coins", new_coins_data)
                 return
             
-            # 提取历史数据中的symbol列表
-            history_symbols = [symbol.lower() for symbol in history_df['symbol'].tolist() if symbol]
+            # 提取历史数据中的symbol列表，确保只处理字符串类型的值
+            history_symbols = []
+            for symbol in history_df['symbol'].tolist():
+                # 检查是否为字符串类型且非空
+                if isinstance(symbol, str) and symbol:
+                    history_symbols.append(symbol.lower())
+                elif isinstance(symbol, float) and not pd.isna(symbol):
+                    # 如果是数值类型且非NaN，转换为字符串
+                    history_symbols.append(str(symbol).lower())
             
             # 比对结果
             new_added_symbols = [symbol for symbol in new_symbols if symbol not in history_symbols]
@@ -768,51 +778,37 @@ class PumpFunScraper:
         self.logger.info("已发出停止运行信号")
 
 if __name__ == "__main__":
-    # 创建命令行参数解析器
-    # parser = argparse.ArgumentParser(description='Pump.fun 网站爬虫')
-    # parser.add_argument('--interval', type=int, default=5, help='执行间隔时间（分钟），默认为5分钟')
-    # parser.add_argument('--end-time', type=str, help='结束时间，格式为 "HH:MM"，如 "23:30"')
-    # parser.add_argument('--mode', choices=['once', 'scheduled', 'test_file'], default='once', 
-    #                     help='运行模式：once=运行一次，scheduled=定时运行，test_file=从HTML文件测试')
-    # parser.add_argument('--file', type=str, help='测试模式下使用的HTML文件路径')
-    
-    # # 解析命令行参数
-    # args = parser.parse_args()
-    
-    # # 创建爬虫实例
-    # scraper = PumpFunScraper(interval_minutes=args.interval, end_time=args.end_time)
-
     # 暂不使用命令行
     args = argparse.Namespace()
     args.mode = "scheduled" # 
-    interval_minutes = 1
-    end_time = datetime.strptime("2025-03-17 12:00:00", "%Y-%m-%d %H:%M:%S")
+    interval_minutes = 0.5  # 修改为0.5分钟，即30秒
+    end_time = datetime.strptime("2025-03-12 12:00:00", "%Y-%m-%d %H:%M:%S")
     
-    # 设置主日志记录器
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler()
-        ]
-    )
-    logger = logging.getLogger("PumpFunMain")
+    # 不再设置根日志记录器，让类内部的日志处理即可
+    # logging.basicConfig(
+    #     level=logging.INFO,
+    #     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    #     handlers=[
+    #         logging.StreamHandler()
+    #     ]
+    # )
+    # logger = logging.getLogger("PumpFunMain")
     
     scraper = PumpFunScraper(interval_minutes=interval_minutes, end_time=end_time)
     
     # 根据运行模式执行相应操作
     if args.mode == 'once':
         # 运行一次
-        logger.info("运行模式：单次运行")
+        print("运行模式：单次运行")
         scraper.run()
     elif args.mode == 'scheduled':
         # 定时运行
-        logger.info("运行模式：定时运行")
+        print("运行模式：定时运行")
         scraper.run_scheduled()
     elif args.mode == 'test_file':
         # 从HTML文件测试
-        logger.info("运行模式：从HTML文件测试")
-        if args.file:
+        print("运行模式：从HTML文件测试")
+        if hasattr(args, 'file') and args.file:
             scraper.test_extract_from_html_file(args.file)
         else:
             # 如果未提供文件路径，则自动查找最新的HTML文件
