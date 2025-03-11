@@ -8,8 +8,8 @@ from datetime import datetime
 from fear_and_greed import get
 
 # 添加项目根目录到Python路径
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(project_root)
+# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+# sys.path.append(project_root)
 
 def get_latest_fgi_and_update_csv():
     latest_fgi = get();
@@ -17,7 +17,8 @@ def get_latest_fgi_and_update_csv():
     print(latest_fgi.last_update.strftime('%Y-%m-%d'))
 
     # 更新CSV文件
-    csv_path = os.path.join(project_root, 'data/cnn_fear_greed_index.csv')
+    # csv_path = os.path.join(project_root, 'data/cnn_fear_greed_index.csv')
+    csv_path = "/root/project/market_observer/data/cnn_fear_greed_index.csv"
     df = pd.read_csv(csv_path)
     new_row = pd.DataFrame([{'date': latest_fgi.last_update.strftime('%Y-%m-%d'), 'value': latest_fgi.value}])
 

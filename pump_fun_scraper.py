@@ -782,7 +782,7 @@ if __name__ == "__main__":
     args = argparse.Namespace()
     args.mode = "scheduled" # 
     interval_minutes = 0.5  # 修改为0.5分钟，即30秒
-    end_time = datetime.strptime("2025-03-12 12:00:00", "%Y-%m-%d %H:%M:%S")
+    end_time = datetime.strptime("2025-03-31 12:00:00", "%Y-%m-%d %H:%M:%S")
     
     # 不再设置根日志记录器，让类内部的日志处理即可
     # logging.basicConfig(
