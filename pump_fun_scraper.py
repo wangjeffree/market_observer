@@ -224,23 +224,8 @@ class PumpFunScraper:
                 symbol_elem = link.find('span', class_=lambda c: c and 'text-[14px]' in c)
                 symbol = symbol_elem.text.strip() if symbol_elem else ""
                 
-                # 处理币种名称和符号
-                # 例如从 "PWEASE (pwease)" 中提取 name="PWEASE" 和 symbol="pwease"
-                name = ""
-                symbol_text = ""
-                if symbol:
-                    import re
-                    # 尝试匹配格式 "NAME (symbol)"
-                    match = re.match(r'([^(]+)\s*\(([^)]+)\)', symbol)
-                    if match:
-                        name = match.group(1).strip()
-                        symbol_text = match.group(2).strip()
-                    else:
-                        name = symbol
-                
-                # 如果找不到符号，尝试使用标题或链接文本
-                if not name:
-                    name = title if title else link.text.strip()
+                # 不再拆分name和symbol，直接使用完整文本作为name
+                name = symbol if symbol else title if title else link.text.strip()
                 
                 # 构建完整链接并提取ca_address
                 coin_link = 'https://pump.fun' + link['href'] if link['href'].startswith('/') else link['href']
@@ -305,7 +290,6 @@ class PumpFunScraper:
                 
                 coins_data.append({
                     "name": name,
-                    "symbol": symbol_text,
                     "title": title,
                     "market_value": market_value,
                     "reply_count": reply_count,
@@ -481,8 +465,8 @@ class PumpFunScraper:
         """
         self.logger.info("开始与历史数据比对...")
         
-        # 提取新数据中的symbol列表
-        new_symbols = [coin['symbol'].lower() for coin in new_coins_data if coin['symbol']]
+        # 提取新数据中的name列表
+        new_names = [coin['name'].lower() for coin in new_coins_data if coin['name']]
         
         # 检查历史数据文件是否存在
         if not os.path.exists(self.history_file):
@@ -505,25 +489,25 @@ class PumpFunScraper:
                 self.send_notification("new_coins", new_coins_data)
                 return
             
-            # 提取历史数据中的symbol列表，确保只处理字符串类型的值
-            history_symbols = []
-            for symbol in history_df['symbol'].tolist():
+            # 提取历史数据中的name列表，确保只处理字符串类型的值
+            history_names = []
+            for name in history_df['name'].tolist():
                 # 检查是否为字符串类型且非空
-                if isinstance(symbol, str) and symbol:
-                    history_symbols.append(symbol.lower())
-                elif isinstance(symbol, float) and not pd.isna(symbol):
+                if isinstance(name, str) and name:
+                    history_names.append(name.lower())
+                elif isinstance(name, float) and not pd.isna(name):
                     # 如果是数值类型且非NaN，转换为字符串
-                    history_symbols.append(str(symbol).lower())
+                    history_names.append(str(name).lower())
             
             # 比对结果
-            new_added_symbols = [symbol for symbol in new_symbols if symbol not in history_symbols]
-            removed_symbols = [symbol for symbol in history_symbols if symbol not in new_symbols]
+            new_added_names = [name for name in new_names if name not in history_names]
+            removed_names = [name for name in history_names if name not in new_names]
             
             # 根据比对结果处理
-            if new_added_symbols:
-                self.logger.info(f"发现新增币种: {', '.join(new_added_symbols)}")
+            if new_added_names:
+                self.logger.info(f"发现新增币种: {', '.join(new_added_names)}")
                 # 更新历史数据（追加新币种）
-                new_coins_to_add = [coin for coin in new_coins_data if coin['symbol'].lower() in new_added_symbols]
+                new_coins_to_add = [coin for coin in new_coins_data if coin['name'].lower() in new_added_names]
                 
                 # 将新币种添加到历史数据中
                 for coin in new_coins_to_add:
@@ -537,14 +521,14 @@ class PumpFunScraper:
                 # 发送新币种通知
                 self.send_notification("new_coins", new_coins_to_add)
                 
-            elif removed_symbols:
-                self.logger.info(f"发现已移除币种: {', '.join(removed_symbols)}")
+            elif removed_names:
+                self.logger.info(f"发现已移除币种: {', '.join(removed_names)}")
                 # 更新历史数据（替换为新数据）
                 self.save_to_csv(new_coins_data, os.path.basename(self.history_file))
                 self.logger.info(f"已用新数据替换历史数据文件: {self.history_file}")
                 
                 # 发送币种移除通知
-                removed_coins = [{'symbol': symbol} for symbol in removed_symbols]
+                removed_coins = [{'name': name} for name in removed_names]
                 self.send_notification("removed_coins", removed_coins)
                 
             else:
@@ -571,7 +555,6 @@ class PumpFunScraper:
                 
                 for coin in coins_data:
                     content += f"名称: {coin['name']}\n"
-                    content += f"符号: {coin['symbol']}\n"
                     content += f"市值: {coin['market_value']}\n"
                     content += f"回复数: {coin['reply_count']}\n"
                     content += f"链接: {coin['link']}\n"
@@ -583,7 +566,7 @@ class PumpFunScraper:
                 content = "Pump.fun 网站发现以下币种已被移除:\n\n"
                 
                 for coin in coins_data:
-                    content += f"符号: {coin['symbol']}\n"
+                    content += f"名称: {coin['name']}\n"
                     content += "-" * 30 + "\n"
             else:
                 self.logger.error(f"未知的通知类型: {notification_type}")
