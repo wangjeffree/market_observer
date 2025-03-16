@@ -764,9 +764,8 @@ class PumpFunScraper:
 if __name__ == "__main__":
     # 暂不使用命令行
     args = argparse.Namespace()
-    args.mode = "scheduled" # 
-    interval_minutes = 0.5  # 修改为0.5分钟，即30秒
-    end_time = datetime.strptime("2025-03-31 12:00:00", "%Y-%m-%d %H:%M:%S")
+    args.mode = "forever"  # 修改为永远循环模式
+    interval_minutes = 0.25  # 执行间隔
     
     # 不再设置根日志记录器，让类内部的日志处理即可
     # logging.basicConfig(
@@ -778,7 +777,7 @@ if __name__ == "__main__":
     # )
     # logger = logging.getLogger("PumpFunMain")
     
-    scraper = PumpFunScraper(interval_minutes=interval_minutes, end_time=end_time)
+    scraper = PumpFunScraper(interval_minutes=interval_minutes)
     
     # 根据运行模式执行相应操作
     if args.mode == 'once':
@@ -789,6 +788,44 @@ if __name__ == "__main__":
         # 定时运行
         print("运行模式：定时运行")
         scraper.run_scheduled()
+    elif args.mode == 'forever':
+        # 永远循环模式
+        print("运行模式：永远循环")
+        print("程序将永远循环运行，只能使用Ctrl+C强制退出")
+        try:
+            # 设置is_running为True，并且不设置结束时间
+            scraper.is_running = True
+            scraper.end_time = None
+            
+            run_count = 0
+            while True:
+                run_count += 1
+                current_time = datetime.now()
+                
+                print(f"\n===== 第{run_count}次运行 - {current_time.strftime('%Y-%m-%d %H:%M:%S')} =====")
+                scraper.logger.info(f"\n===== 第{run_count}次运行 - {current_time.strftime('%Y-%m-%d %H:%M:%S')} =====")
+                
+                # 运行爬虫
+                success = scraper.run()
+                
+                if success:
+                    scraper.logger.info(f"第{run_count}次运行成功")
+                else:
+                    scraper.logger.info(f"第{run_count}次运行失败")
+                
+                # 等待指定的分钟数
+                wait_seconds = interval_minutes * 60
+                scraper.logger.info(f"等待 {wait_seconds} 秒后进行下一次运行...")
+                time.sleep(wait_seconds)
+                
+        except KeyboardInterrupt:
+            print("\n检测到键盘中断，程序退出")
+            scraper.logger.info("\n检测到键盘中断，程序退出")
+        except Exception as e:
+            print(f"发生错误: {str(e)}")
+            scraper.logger.error(f"发生错误: {str(e)}")
+            import traceback
+            traceback.print_exc()
     elif args.mode == 'test_file':
         # 从HTML文件测试
         print("运行模式：从HTML文件测试")
