@@ -1,0 +1,7 @@
+pandas
+fear-and-greed
+requests
+beautifulsoup4
+selenium
+argparse
+webdriver-manager 

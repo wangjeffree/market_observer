@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 import argparse
 import logging
@@ -131,10 +133,9 @@ class PumpFunScraper:
         """获取数据存储目录"""
         # 获取项目根目录
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(current_dir, "..", "..", ".."))
         
-        # 数据存储目录
-        data_dir = os.path.join(project_root, "data", "crypto", "pump_fun")
+        # 数据存储目录改为当前项目路径下的data文件夹
+        data_dir = os.path.join(current_dir, "data", "pump_fun")
         
         # 确保目录存在
         os.makedirs(data_dir, exist_ok=True)
@@ -357,8 +358,8 @@ class PumpFunScraper:
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             
-            # 初始化WebDriver
-            driver = webdriver.Chrome(options=chrome_options)
+            # 初始化WebDriver，使用webdriver-manager自动管理ChromeDriver
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
             
             try:
                 # 访问网页

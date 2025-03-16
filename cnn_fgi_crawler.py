@@ -17,8 +17,16 @@ def get_latest_fgi_and_update_csv():
     print(latest_fgi.last_update.strftime('%Y-%m-%d'))
 
     # 更新CSV文件
-    # csv_path = os.path.join(project_root, 'data/cnn_fear_greed_index.csv')
-    csv_path = "/root/project/market_observer/data/cnn_fear_greed_index.csv"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(current_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    csv_path = os.path.join(data_dir, 'cnn_fear_greed_index.csv')
+    
+    # 如果文件不存在，创建一个空的DataFrame
+    if not os.path.exists(csv_path):
+        df = pd.DataFrame(columns=['date', 'value'])
+        df.to_csv(csv_path, index=False)
+    
     df = pd.read_csv(csv_path)
     new_row = pd.DataFrame([{'date': latest_fgi.last_update.strftime('%Y-%m-%d'), 'value': latest_fgi.value}])
 
